@@ -14,7 +14,14 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         await client.connect();
-        console.log('data base connected');
+        const toolsCollection = client.db('hand-tools').collection('tools');
+
+        app.get('/purchase', async (req, res) => {
+            const query = {};
+            const result = await toolsCollection.find(query).toArray();
+            res.send(result)
+        })
+
 
     }
     finally {
