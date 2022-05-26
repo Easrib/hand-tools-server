@@ -15,6 +15,7 @@ async function run() {
     try {
         await client.connect();
         const toolsCollection = client.db('hand-tools').collection('tools');
+        const profileCollection = client.db('hand-tools').collection('profiles')
 
         app.get('/purchase', async (req, res) => {
             const query = {};
@@ -25,6 +26,18 @@ async function run() {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await toolsCollection.findOne(query);
+            res.send(result)
+        })
+
+        app.put('/profile/:email', async (req, res) => {
+            const email = req.params.email;
+            const profile = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: profile,
+            };
+            const result = await profileCollection.updateOne(filter, updateDoc, options);
             res.send(result)
         })
 
