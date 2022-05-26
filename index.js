@@ -29,7 +29,11 @@ async function run() {
             const result = await toolsCollection.findOne(query);
             res.send(result)
         })
-
+        app.get('/review', async (req, res) => {
+            const query = {};
+            const result = await reviewCollection.find(query).toArray();
+            res.send(result)
+        })
         app.post('/review', async (req, res) => {
             const review = req.body;
             const result = await reviewCollection.insertOne(review);
