@@ -17,6 +17,7 @@ async function run() {
         const toolsCollection = client.db('hand-tools').collection('tools');
         const profileCollection = client.db('hand-tools').collection('profiles')
         const reviewCollection = client.db('hand-tools').collection('reviews')
+        const orderCollection = client.db('hand-tools').collection('orders')
 
         app.get('/purchase', async (req, res) => {
             const query = {};
@@ -37,6 +38,11 @@ async function run() {
         app.post('/review', async (req, res) => {
             const review = req.body;
             const result = await reviewCollection.insertOne(review);
+            res.send(result)
+        })
+        app.post('/order', async (req, res) => {
+            const order = req.body;
+            const result = await orderCollection.insertOne(order);
             res.send(result)
         })
 
