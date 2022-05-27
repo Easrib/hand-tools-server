@@ -31,9 +31,20 @@ async function run() {
     try {
         await client.connect();
         const toolsCollection = client.db('hand-tools').collection('tools');
-        const profileCollection = client.db('hand-tools').collection('profiles')
-        const reviewCollection = client.db('hand-tools').collection('reviews')
-        const orderCollection = client.db('hand-tools').collection('orders')
+        const profileCollection = client.db('hand-tools').collection('profiles');
+        const reviewCollection = client.db('hand-tools').collection('reviews');
+        const orderCollection = client.db('hand-tools').collection('orders');
+
+        const verifyAdmin = async (req, res, next) => {
+            const requester = req.decoded.email;
+            const requestAccount = await profileCollection.findOne({ email: requester });
+            if (requestAccount.role === 'admin') {
+                next();
+            }
+            else {
+                res.status(403).send({ message: 'Forbidden' })
+            }
+        }
 
         app.get('/purchase', async (req, res) => {
             const query = {};
@@ -63,6 +74,16 @@ async function run() {
                 return res.status(403).send({ message: 'Forbidden access' })
             }
         })
+        app.get('/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = await profileCollection.findOne({ email: email });
+            const isAdmin = user.role === 'admin';
+            res.send({ admin: isAdmin })
+        })
+        app.get('/profile', verifyJWT, async (req, res) => {
+            const profiles = await profileCollection.find().toArray();
+            res.send(profiles)
+        })
         app.post('/review', async (req, res) => {
             const review = req.body;
             const result = await reviewCollection.insertOne(review);
@@ -74,6 +95,15 @@ async function run() {
             res.send(result)
         })
 
+        app.put('/profile/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const updateDoc = {
+                $set: { role: 'admin' },
+            };
+            const result = await profileCollection.updateOne(filter, updateDoc);
+            res.send(result)
+        })
         app.put('/profile/:email', async (req, res) => {
             const email = req.params.email;
             const profile = req.body;
