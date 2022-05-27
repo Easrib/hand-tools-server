@@ -48,7 +48,7 @@ async function run() {
 
         app.get('/purchase', async (req, res) => {
             const query = {};
-            const result = await toolsCollection.find(query).toArray();
+            const result = (await toolsCollection.find(query).toArray()).reverse();
             res.send(result)
         })
         app.get('/purchase/:id', async (req, res) => {
@@ -92,6 +92,11 @@ async function run() {
         app.post('/order', async (req, res) => {
             const order = req.body;
             const result = await orderCollection.insertOne(order);
+            res.send(result)
+        })
+        app.post('/purchase', async (req, res) => {
+            const tool = req.body;
+            const result = await toolsCollection.insertOne(tool)
             res.send(result)
         })
 
