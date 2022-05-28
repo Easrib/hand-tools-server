@@ -5,6 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 app.use(cors());
 app.use(express.json());
@@ -34,6 +35,7 @@ async function run() {
         const profileCollection = client.db('hand-tools').collection('profiles');
         const reviewCollection = client.db('hand-tools').collection('reviews');
         const orderCollection = client.db('hand-tools').collection('orders');
+        const paymentCollection = client.db('hand-tools').collection('payments');
 
         const verifyAdmin = async (req, res, next) => {
             const requester = req.decoded.email;
@@ -74,6 +76,12 @@ async function run() {
                 return res.status(403).send({ message: 'Forbidden access' })
             }
         })
+        app.get('/order/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const order = await orderCollection.findOne(query)
+            res.send(order)
+        })
         app.get('/admin/:email', async (req, res) => {
             const email = req.params.email;
             const user = await profileCollection.findOne({ email: email });
@@ -94,11 +102,22 @@ async function run() {
             const result = await orderCollection.insertOne(order);
             res.send(result)
         })
-        app.post('/purchase', async (req, res) => {
+        app.post('/purchase', verifyJWT, verifyAdmin, async (req, res) => {
             const tool = req.body;
             const result = await toolsCollection.insertOne(tool)
             res.send(result)
         })
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const service = req.body;
+            const price = service.price;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: 'usd',
+                payment_method_types: ['card']
+            });
+            res.send({ clientSecret: paymentIntent.client_secret })
+        });
 
         app.put('/profile/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
             const email = req.params.email;
@@ -120,6 +139,21 @@ async function run() {
             const result = await profileCollection.updateOne(filter, updateDoc, options);
             const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
             res.send({ result, token })
+        })
+        app.patch('/order/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const payment = req.body;
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+
+            const result = await paymentCollection.insertOne(payment);
+            const updatedOrder = await orderCollection.updateOne(filter, updatedDoc);
+            res.send(updatedOrder);
         })
 
 
