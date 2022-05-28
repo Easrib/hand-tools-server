@@ -155,6 +155,12 @@ async function run() {
             const updatedOrder = await orderCollection.updateOne(filter, updatedDoc);
             res.send(updatedOrder);
         })
+        app.delete('/order/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const order = await orderCollection.deleteOne(query)
+            res.send(order)
+        })
 
 
     }
